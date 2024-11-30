@@ -2,7 +2,7 @@ use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering::{Release, Acquire}};
-//use crossbeam_utils::CachePadded;
+use crossbeam_utils::CachePadded;
 
 pub struct Producer<T> {
     rb: Arc<UnsafeCell<RingBuffer<T>>>,
@@ -19,19 +19,19 @@ unsafe impl<T> Send for Producer<T> {}
 unsafe impl<T> Send for Consumer<T> {}
 
 struct RingBuffer<T> {
-    //produce_index: CachePadded<AtomicUsize>,
-    //consume_index: CachePadded<AtomicUsize>,
-    produce_index: AtomicUsize,
-    consume_index: AtomicUsize,
+    produce_index: CachePadded<AtomicUsize>,
+    consume_index: CachePadded<AtomicUsize>,
+    //produce_index: AtomicUsize,
+    //consume_index: AtomicUsize,
     buffer: Box<[MaybeUninit<T>]>,
 }
 
 pub fn my_ringbuf<T>(capacity: usize) -> (Producer<T>, Consumer<T>) {
     let rb = Arc::new(UnsafeCell::new(RingBuffer {
-        produce_index: AtomicUsize::new(0),
-        consume_index: AtomicUsize::new(0),
-        //produce_index: CachePadded::new(AtomicUsize::new(0)),
-        //consume_index: CachePadded::new(AtomicUsize::new(0)),
+        //produce_index: AtomicUsize::new(0),
+        //consume_index: AtomicUsize::new(0),
+        produce_index: CachePadded::new(AtomicUsize::new(0)),
+        consume_index: CachePadded::new(AtomicUsize::new(0)),
         buffer: Box::new_uninit_slice(capacity),
     }));
     (Producer {
