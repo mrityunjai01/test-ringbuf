@@ -1,7 +1,7 @@
 use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering::{Release, Relaxed}};
+use std::sync::atomic::{AtomicUsize, Ordering::{Release, Acquire}};
 
 pub struct Producer<T>(Arc<UnsafeCell<RingBuffer<T>>>);
 pub struct Consumer<T>(Arc<UnsafeCell<RingBuffer<T>>>);
@@ -28,8 +28,8 @@ impl<T> Producer<T> {
     pub fn try_push(&mut self, item: T) -> Option<T> {
         let current = unsafe { &mut *self.0.get() };
 
-        let c = current.consume_index.load(Relaxed); // Relaxed should be OK
-        let p = current.produce_index.load(Relaxed);
+        let c = current.consume_index.load(Acquire); // change to Relaxed, and it becomes faster
+        let p = current.produce_index.load(Acquire);
         let cap = current.buffer.len();
         if p + 1 == c || (p == cap-1 && c == 0) { // full
             return Some(item);
@@ -46,8 +46,8 @@ impl<T> Consumer<T> {
     pub fn try_pop(&mut self) -> Option<T> {
         let current = unsafe { &mut *self.0.get() };
 
-        let c = current.consume_index.load(Relaxed);
-        let p = current.produce_index.load(Relaxed);
+        let c = current.consume_index.load(Acquire);
+        let p = current.produce_index.load(Acquire);
         if p == c { // empty
             return None;
         }
