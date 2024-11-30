@@ -28,5 +28,6 @@ dependencies = [
 name = "test-ringbuf"
 version = "0.1.0"
 dependencies = [
+ "crossbeam-utils",
  "ringbuf",
 ]
