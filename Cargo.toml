@@ -7,10 +7,11 @@ edition = "2021"
 crossbeam-utils = "0.8.20"
 ringbuf = "0.4.7"
 
-[dev-dependences]
+[dev-dependencies]
 criterion = "0.5"
 
 [[bench]]
-name = "ringbuf_reference"
+name = "single_thread_ringbuf"
+path = "benches/single_thread_ringbuf.rs"
 harness = false
 
