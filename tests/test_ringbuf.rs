@@ -2,8 +2,6 @@ use ringbuf::{traits::*, HeapRb};
 use std::thread;
 use std::time::{Duration, SystemTime};
 
-mod my_ringbuf;
-
 fn test_crate_ringbuf() {
     let rb = HeapRb::<usize>::new(1000);
     let (mut prod, mut cons) = rb.split();
@@ -48,7 +46,7 @@ fn test_crate_ringbuf() {
 }
 
 fn test_my_ringbuf() {
-    let (mut prod, mut cons) = my_ringbuf::my_ringbuf::<usize>(1000);
+    let (mut prod, mut cons) = lib::my_ringbuf::<usize>(1000);
 
     let h = thread::spawn(move || {
         let start = SystemTime::now();
@@ -87,19 +85,4 @@ fn test_my_ringbuf() {
     println!("producer end! {:?} {blocks}", start.elapsed());
 
     h.join().unwrap();
-}
-
-fn main() {
-    println!("--");
-    test_crate_ringbuf();
-    test_my_ringbuf();
-    println!("--");
-    test_crate_ringbuf();
-    test_my_ringbuf();
-    println!("--");
-    test_crate_ringbuf();
-    test_my_ringbuf();
-    println!("--");
-    test_crate_ringbuf();
-    test_my_ringbuf();
 }
