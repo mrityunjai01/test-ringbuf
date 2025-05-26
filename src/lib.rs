@@ -2,9 +2,10 @@ use crossbeam_utils::CachePadded;
 use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
 use std::sync::atomic::{
+    AtomicUsize,
+    Ordering::{Acquire, Release},
+};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering::{Release, Acquire}};
-use crossbeam_utils::CachePadded;
 
 pub struct Producer<T> {
     rb: Arc<UnsafeCell<RingBuffer<T>>>,
@@ -36,16 +37,18 @@ pub fn my_ringbuf<T>(capacity: usize) -> (Producer<T>, Consumer<T>) {
         consume_index: CachePadded::new(AtomicUsize::new(0)),
         buffer: Box::new_uninit_slice(capacity),
     }));
-    (Producer {
-        rb: rb.clone(),
-        local_produce_index: 0,
-        local_consume_index: 0,
-    },
-    Consumer {
-        rb,
-        local_produce_index: 0,
-        local_consume_index: 0,
-    })
+    (
+        Producer {
+            rb: rb.clone(),
+            local_produce_index: 0,
+            local_consume_index: 0,
+        },
+        Consumer {
+            rb,
+            local_produce_index: 0,
+            local_consume_index: 0,
+        },
+    )
 }
 
 impl<T> Producer<T> {
