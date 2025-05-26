@@ -1,5 +1,7 @@
+use crossbeam_utils::CachePadded;
 use std::cell::UnsafeCell;
 use std::mem::MaybeUninit;
+use std::sync::atomic::{
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering::{Release, Acquire}};
 use crossbeam_utils::CachePadded;
@@ -53,15 +55,17 @@ impl<T> Producer<T> {
 
         let p = self.local_produce_index;
         let c = self.local_consume_index;
-        if p + 1 == c || (p == cap-1 && c == 0) { // full, fetch real consume_index
+        if p + 1 == c || (p == cap - 1 && c == 0) {
+            // full, fetch real consume_index
             self.local_consume_index = rb.consume_index.load(Acquire);
             let c = self.local_consume_index;
-            if p + 1 == c || (p == cap-1 && c == 0) { // check again
+            if p + 1 == c || (p == cap - 1 && c == 0) {
+                // check again
                 return Some(item);
             }
         }
 
-        let next = next_index(p, cap);
+        let next = (p + 1) % cap;
         rb.buffer[p].write(item);
         rb.produce_index.store(next, Release);
         self.local_produce_index = next; // update local_produce_index too
@@ -75,7 +79,8 @@ impl<T> Consumer<T> {
 
         let p = self.local_produce_index;
         let c = self.local_consume_index;
-        if p == c { // empty, fetch real produce_index
+        if p == c {
+            // empty, fetch real produce_index
             self.local_produce_index = rb.produce_index.load(Acquire);
             let c = self.local_produce_index;
             if p == c {
@@ -83,19 +88,11 @@ impl<T> Consumer<T> {
             }
         }
 
-        let next = next_index(c, rb.buffer.len());
+        let next = (c + 1) % rb.buffer.len();
         let item = unsafe { rb.buffer.get_unchecked(c).assume_init_read() };
         rb.consume_index.store(next, Release);
         self.local_consume_index = next; // update local_consume_index too
 
         Some(item)
-    }
-}
-
-fn next_index(i: usize, capacity: usize) -> usize {
-    if i == capacity - 1 {
-        0
-    } else {
-        i + 1
     }
 }
